@@ -345,6 +345,26 @@ function statusSelect(tx) {
   const opts = STATUS_OPTIONS.map((o) => `<option value="${o}" ${o === tx.status ? "selected" : ""}>${o}</option>`).join("");
   return `<select class="status-select" data-id="${tx.id}" style="color:${c.text};background:${c.bg}">${opts}</select>`;
 }
+function categorySelect(tx) {
+  const cats = tx.type === "Receita" ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA;
+  const opts = cats.map((c) => `<option value="${c}" ${c === tx.category ? "selected" : ""}>${escapeHtml(c)}</option>`).join("");
+  return `<select class="status-select cat-select" data-id="${tx.id}" style="color:${COLORS.ink};background:#F1F0EA">${opts}</select>`;
+}
+function scopeSelectInline(tx) {
+  const opts = ["Pessoal", "Empresa"].map((s) => `<option value="${s}" ${s === tx.scope ? "selected" : ""}>${s}</option>`).join("");
+  const isEmp = tx.scope === "Empresa";
+  return `<select class="status-select scope-select" data-id="${tx.id}" style="color:${isEmp ? COLORS.empresa : COLORS.pessoal};background:${isEmp ? "#F3E7DE" : "#E3EEE7"}">${opts}</select>`;
+}
+function accountSelectInline(tx) {
+  const opts = CONTAS.map((c) => `<option value="${c}" ${c === tx.account ? "selected" : ""}>${c}</option>`).join("");
+  return `<select class="status-select account-select" data-id="${tx.id}" style="color:${COLORS.ink};background:#F1F0EA">${opts}</select>`;
+}
+function valueInputInline(tx, displayValue) {
+  const v = displayValue != null ? displayValue : tx.value;
+  const isReceita = tx.type === "Receita";
+  return `<span class="value-inline-wrap ${isReceita ? "val-receita" : "val-despesa"}">${isReceita ? "+" : "−"}
+    <input type="number" step="0.01" class="value-inline" data-id="${tx.id}" value="${(v || 0).toFixed(2)}" /></span>`;
+}
 function scopePills() {
   return `<div class="row-gap">
     <button class="pill ${state.scopeFilter === "Todos" ? "active" : ""}" style="${state.scopeFilter === "Todos" ? `background:${COLORS.ink}` : ""}" data-scope="Todos">Todos</button>
@@ -366,10 +386,10 @@ function occTable(rows) {
     <tr data-id="${r.tx.id}">
       <td class="mono" style="color:var(--ink-muted);white-space:nowrap;font-size:12px">${brDate(r.tx.date)}</td>
       <td>${escapeHtml(r.tx.desc)} ${recurBadge(r.badge)}</td>
-      <td style="color:var(--ink-muted)">${r.tx.category}</td>
-      <td>${scopeTag(r.tx.scope)}</td>
-      <td style="font-size:12px;color:var(--ink-muted)">${r.tx.account}</td>
-      <td class="${r.tx.type === "Receita" ? "val-receita" : "val-despesa"}">${r.tx.type === "Receita" ? "+" : "−"} ${fmtBRL(r.value)}</td>
+      <td>${categorySelect(r.tx)}</td>
+      <td>${scopeSelectInline(r.tx)}</td>
+      <td>${accountSelectInline(r.tx)}</td>
+      <td>${valueInputInline(r.tx, r.value)}</td>
       <td>${statusSelect(r.tx)}</td>
       <td><button class="icon-btn tx-edit" title="Editar">✎</button><button class="icon-btn tx-del" title="Excluir">🗑</button></td>
     </tr>`).join("");
@@ -794,6 +814,38 @@ function attachMainEvents() {
     saveTxs();
     render();
   }));
+  document.querySelectorAll(".cat-select").forEach((sel) => sel.addEventListener("change", (e) => {
+    const id = e.target.dataset.id;
+    const tx = state.txs.find((t) => t.id === id);
+    if (!tx) return;
+    tx.category = e.target.value;
+    saveTxs();
+    render();
+  }));
+  document.querySelectorAll(".scope-select").forEach((sel) => sel.addEventListener("change", (e) => {
+    const id = e.target.dataset.id;
+    const tx = state.txs.find((t) => t.id === id);
+    if (!tx) return;
+    tx.scope = e.target.value;
+    saveTxs();
+    render();
+  }));
+  document.querySelectorAll(".account-select").forEach((sel) => sel.addEventListener("change", (e) => {
+    const id = e.target.dataset.id;
+    const tx = state.txs.find((t) => t.id === id);
+    if (!tx) return;
+    tx.account = e.target.value;
+    saveTxs();
+    render();
+  }));
+  document.querySelectorAll(".value-inline").forEach((inp) => inp.addEventListener("change", (e) => {
+    const id = e.target.dataset.id;
+    const tx = state.txs.find((t) => t.id === id);
+    if (!tx) return;
+    tx.value = parseFloat(e.target.value) || 0;
+    saveTxs();
+    render();
+  }));
 
   const newCardBtn = document.getElementById("new-card-btn");
   if (newCardBtn) newCardBtn.addEventListener("click", () => openCardModal(null));
@@ -877,29 +929,39 @@ function wireChipGroup(name, onChange) {
   document.querySelectorAll(`[data-chipgroup="${name}"] .chip`).forEach((chip) => chip.addEventListener("click", () => onChange(chip.dataset.value)));
 }
 
-/* ---- Transação (com recorrência) ---- */
+/* ---- Transação (com recorrência) ----
+   No modal de edição (lápis) só aparecem: Descrição, Data, Recorrência e Número de parcelas.
+   Categoria, Escopo, Forma, Valor e Status são editados direto na tabela (seleção inline,
+   igual à coluna Status). Ao CRIAR um lançamento novo, o formulário continua completo,
+   pois ainda não existe linha na tabela para editar esses campos inline. */
 function openTxModal(existing, defaultScope) {
   const f = existing ? { ...existing } : { date: todayISO(), desc: "", type: "Despesa", category: CATEGORIAS_DESPESA[0], scope: defaultScope || "Pessoal", account: CONTAS[0], status: "Pago", value: "", recurrence: "unico", parcelas: 2 };
+  const isEdit = !!existing;
   const draw = () => {
     const cats = f.type === "Receita" ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA;
-    openModal(existing ? "Editar lançamento" : "Novo lançamento", `
-      <div class="field"><label>Descrição</label><input id="f-desc" value="${escapeHtml(f.desc)}" placeholder="Ex.: Supermercado" /></div>
+    const camposExtras = isEdit ? "" : `
       <div class="field-row">
-        <div class="field"><label>Data ${f.recurrence !== "unico" ? "(início)" : ""}</label><input id="f-date" type="date" value="${f.date}" /></div>
         <div class="field"><label>Valor ${f.recurrence !== "unico" ? "(por mês)" : ""} (R$)</label><input id="f-value" type="number" step="0.01" value="${f.value}" placeholder="0,00" /></div>
+        <div class="field"><label>Tipo</label>${chipGroup("type", ["Despesa","Receita"], f.type, f.type === "Receita" ? COLORS.pessoal : COLORS.red)}</div>
       </div>
-      <div class="field"><label>Recorrência</label>${chipGroup("recurrence", ["unico","fixo","parcelado"].map((r) => ({unico:"Único",fixo:"Fixo (todo mês)",parcelado:"Parcelado"}[r])), {unico:"Único",fixo:"Fixo (todo mês)",parcelado:"Parcelado"}[f.recurrence], COLORS.gold)}</div>
-      ${f.recurrence === "parcelado" ? `<div class="field"><label>Número de parcelas</label><input id="f-parcelas" type="number" min="2" max="60" value="${f.parcelas || 2}" /></div>` : ""}
-      <div class="field"><label>Tipo</label>${chipGroup("type", ["Despesa","Receita"], f.type, f.type === "Receita" ? COLORS.pessoal : COLORS.red)}</div>
       <div class="field"><label>Escopo</label>${chipGroup("scope", ["Pessoal","Empresa"], f.scope, f.scope === "Empresa" ? COLORS.empresa : COLORS.pessoal)}</div>
       <div class="field"><label>Categoria</label>${chipGroup("category", cats, f.category, COLORS.gold)}</div>
       <div class="field"><label>Forma de pagamento</label>${chipGroup("account", CONTAS, f.account, COLORS.ink)}</div>
       <div class="field"><label>Status</label>${chipGroup("status", ["Pago","Pendente","Agendado"], f.status, COLORS.pessoal)}</div>
+    `;
+    openModal(existing ? "Editar lançamento" : "Novo lançamento", `
+      <div class="field"><label>Descrição</label><input id="f-desc" value="${escapeHtml(f.desc)}" placeholder="Ex.: Supermercado" /></div>
+      <div class="field"><label>Data ${f.recurrence !== "unico" ? "(início)" : ""}</label><input id="f-date" type="date" value="${f.date}" /></div>
+      <div class="field"><label>Recorrência</label>${chipGroup("recurrence", ["unico","fixo","parcelado"].map((r) => ({unico:"Único",fixo:"Fixo (todo mês)",parcelado:"Parcelado"}[r])), {unico:"Único",fixo:"Fixo (todo mês)",parcelado:"Parcelado"}[f.recurrence], COLORS.gold)}</div>
+      ${f.recurrence === "parcelado" ? `<div class="field"><label>Número de parcelas</label><input id="f-parcelas" type="number" min="2" max="60" value="${f.parcelas || 2}" /></div>` : ""}
+      ${isEdit ? `<p style="font-size:12px;color:var(--ink-muted);margin:-6px 0 14px">Categoria, escopo, forma, valor e status são editados direto na tabela de lançamentos.</p>` : ""}
+      ${camposExtras}
       <button ${!f.desc || !f.value ? "disabled" : ""} class="btn save-btn" id="f-save" style="background:${f.scope === "Empresa" ? COLORS.empresa : COLORS.pessoal}">Salvar lançamento</button>
     `);
     document.getElementById("f-desc").addEventListener("input", (e) => { f.desc = e.target.value; });
     document.getElementById("f-date").addEventListener("change", (e) => { f.date = e.target.value; });
-    document.getElementById("f-value").addEventListener("input", (e) => { f.value = e.target.value; });
+    const valueInput = document.getElementById("f-value");
+    if (valueInput) valueInput.addEventListener("input", (e) => { f.value = e.target.value; });
     const parcelasInput = document.getElementById("f-parcelas");
     if (parcelasInput) parcelasInput.addEventListener("input", (e) => { f.parcelas = e.target.value; });
     wireChipGroup("recurrence", (label) => { f.recurrence = { "Único":"unico","Fixo (todo mês)":"fixo","Parcelado":"parcelado" }[label]; draw(); });

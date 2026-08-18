@@ -99,6 +99,11 @@ tr:hover td { background: rgba(0,0,0,0.015); }
 .val-despesa { color: var(--red); font-family: monospace; font-weight: 700; }
 .status-select { appearance: none; -webkit-appearance: none; -moz-appearance: none; border: none; border-radius: 999px; padding: 5px 26px 5px 11px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%2363705F' d='M2.5 4.5L6 8l3.5-3.5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 10px; }
 .status-select:focus { outline: 2px solid var(--char); outline-offset: 1px; }
+.cat-select, .scope-select, .account-select { max-width: 140px; }
+.value-inline-wrap { display: inline-flex; align-items: center; gap: 3px; font-family: monospace; font-weight: 700; }
+.value-inline { width: 92px; border: none; border-radius: 8px; padding: 5px 7px; font-size: 13px; font-weight: 700; font-family: monospace; color: inherit; background: rgba(0,0,0,0.045); -moz-appearance: textfield; }
+.value-inline::-webkit-outer-spin-button, .value-inline::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.value-inline:focus { outline: 2px solid currentColor; outline-offset: 1px; }
 .icon-btn { border: none; background: transparent; cursor: pointer; color: var(--ink-muted); padding: 4px 6px; border-radius: 6px; font-size: 14px; }
 .icon-btn:hover { background: rgba(0,0,0,0.06); }
 .empty-msg { text-align: center; padding: 40px 10px; color: var(--ink-muted); font-size: 14px; }
