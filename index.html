@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Livro-Caixa — Pessoal &amp; Empresa</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Tela de boas-vindas / escolha de personagem (cobre tudo até o perfil ser criado) -->
+<div id="onboarding-root"></div>
+
+<!-- App principal -->
+<div class="app" id="app-root" style="display:none">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-row">
+        <span class="brand-icon" id="brand-icon">K</span>
+        <span class="brand-title">Livro-Caixa</span>
+      </div>
+      <p class="brand-sub">Pessoal &amp; Empresa</p>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-tab="dashboard"><span class="nav-ico">▦</span>Painel</button>
+      <button class="nav-item" data-tab="lancamentos"><span class="nav-ico">⇄</span>Lançamentos</button>
+      <button class="nav-item" data-tab="cartoes"><span class="nav-ico">▭</span>Cartões</button>
+      <button class="nav-item" data-tab="investimentos"><span class="nav-ico">↗</span>Investimentos<span class="lock-ico">🔒</span></button>
+      <button class="nav-item" data-tab="empresa"><span class="nav-ico">▣</span>Empresa<span class="lock-ico">🔒</span></button>
+      <button class="nav-item" data-tab="objetivos"><span class="nav-ico">◎</span>Objetivos</button>
+      <button class="nav-item" data-tab="comissoes"><span class="nav-ico">%</span>Comissões<span class="lock-ico">🔒</span></button>
+      <button class="nav-item" data-tab="assistente"><span class="nav-ico">✦</span>Assistente<span class="lock-ico">🔒</span></button>
+      <button class="nav-item" data-tab="cadastro"><span class="nav-ico">☺</span>Meu perfil</button>
+    </nav>
+    <p class="sidebar-footer">Seus dados ficam salvos neste navegador.</p>
+  </aside>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div id="modal-root"></div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
